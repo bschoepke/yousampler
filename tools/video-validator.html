@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Video Validator</title>
+    <style>
+        body {
+            font-family: sans-serif;
+            padding: 20px;
+        }
+
+        .status {
+            margin-bottom: 10px;
+        }
+
+        .log {
+            background: #f0f0f0;
+            padding: 10px;
+            border: 1px solid #ccc;
+            height: 300px;
+            overflow-y: scroll;
+        }
+
+        .results {
+            margin-top: 20px;
+        }
+
+        .valid {
+            color: green;
+        }
+
+        .invalid {
+            color: red;
+        }
+    </style>
+</head>
+
+<body>
+    <h1>Video Validator</h1>
+    <div id="status" class="status">Initializing...</div>
+    <div id="player-container"></div>
+    <div id="log" class="log"></div>
+    <div class="results">
+        <h3>Final Valid JSON:</h3>
+        <textarea id="final-json" rows="10" cols="80"></textarea>
+    </div>
+
+    <script>
+        let player;
+        let videos = [];
+        let currentIndex = 0;
+        let validVideos = [];
+        let invalidVideos = [];
+
+        function log(msg) {
+            const logDiv = document.getElementById('log');
+            const div = document.createElement('div');
+            div.textContent = msg;
+            logDiv.appendChild(div);
+            logDiv.scrollTop = logDiv.scrollHeight;
+            console.log(msg);
+        }
+
+        function updateStatus(msg) {
+            document.getElementById('status').textContent = msg;
+        }
+
+        // Load YouTube API
+        const tag = document.createElement('script');
+        tag.src = "https://www.youtube.com/iframe_api";
+        const firstScriptTag = document.getElementsByTagName('script')[0];
+        firstScriptTag.parentNode.insertBefore(tag, firstScriptTag);
+
+        function onYouTubeIframeAPIReady() {
+            log("YouTube API Ready");
+            fetch('../suggested-videos.json', { cache: 'no-store' })
+                .then(response => response.json())
+                .then(data => {
+                    videos = data;
+                    log(`Loaded ${videos.length} videos from JSON.`);
+                    startValidation();
+                })
+                .catch(err => log("Error loading JSON: " + err));
+        }
+
+        function extractVideoId(url) {
+            const match = url.match(/[?&]v=([^&]+)/);
+            return match ? match[1] : null;
+        }
+
+        let safetyTimeout;
+
+        function startValidation() {
+            if (currentIndex >= videos.length) {
+                finishValidation();
+                return;
+            }
+
+            const video = videos[currentIndex];
+            const videoId = extractVideoId(video.url);
+
+            if (!videoId) {
+                log(`Invalid URL format: ${video.url}`);
+                invalidVideos.push(video);
+                nextVideo();
+                return;
+            }
+
+            updateStatus(`Testing ${currentIndex + 1}/${videos.length}: ${videoId}`);
+
+            // Create a new player for each video to ensure clean state
+            if (player) {
+                try {
+                    player.destroy();
+                } catch (e) {
+                    console.error("Error destroying player", e);
+                }
+            }
+
+            const container = document.getElementById('player-container');
+            const div = document.createElement('div');
+            div.id = 'player';
+            container.innerHTML = '';
+            container.appendChild(div);
+
+            // Safety timeout in case API hangs
+            clearTimeout(safetyTimeout);
+            safetyTimeout = setTimeout(() => {
+                log(`TIMEOUT for ${video.url} - skipping`);
+                invalidVideos.push(video);
+                nextVideo();
+            }, 8000);
+
+            player = new YT.Player('player', {
+                height: '200',
+                width: '300',
+                videoId: videoId,
+                events: {
+                    'onReady': onPlayerReady,
+                    'onError': onPlayerError,
+                    'onStateChange': onPlayerStateChange
+                }
+            });
+        }
+
+        let timeoutId;
+
+        function onPlayerReady(event) {
+            // Try to play to trigger any playback restrictions
+            event.target.playVideo();
+            // Set a timeout to assume valid if no error occurs quickly
+            timeoutId = setTimeout(() => {
+                log(`Video ${videos[currentIndex].url} seems valid (timeout passed)`);
+                validVideos.push(videos[currentIndex]);
+                nextVideo();
+            }, 3000); // 3 seconds to catch immediate errors
+        }
+
+        function onPlayerError(event) {
+            clearTimeout(timeoutId);
+            let errorMsg = '';
+            switch (event.data) {
+                case 2: errorMsg = 'Invalid parameter'; break;
+                case 5: errorMsg = 'HTML5 error'; break;
+                case 100: errorMsg = 'Video not found/removed'; break;
+                case 101:
+                case 150: errorMsg = 'Not allowed in embedded players'; break;
+                default: errorMsg = 'Unknown error';
+            }
+            log(`ERROR for ${videos[currentIndex].url}: ${errorMsg}`);
+            invalidVideos.push(videos[currentIndex]);
+            nextVideo();
+        }
+
+        function onPlayerStateChange(event) {
+            if (event.data == YT.PlayerState.PLAYING) {
+                // If it starts playing, it's definitely valid
+                clearTimeout(timeoutId);
+                log(`Video ${videos[currentIndex].url} is PLAYING (valid)`);
+                validVideos.push(videos[currentIndex]);
+                nextVideo();
+            }
+        }
+
+        function nextVideo() {
+            clearTimeout(safetyTimeout);
+            currentIndex++;
+            startValidation();
+        }
+
+        function finishValidation() {
+            updateStatus("Validation Complete");
+            log(`Summary: ${validVideos.length} valid, ${invalidVideos.length} invalid.`);
+
+            const finalJson = JSON.stringify(validVideos, null, 2);
+            document.getElementById('final-json').value = finalJson;
+        }
+    </script>
+</body>
+
+</html>
