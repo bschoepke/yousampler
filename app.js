@@ -1,3 +1,6 @@
+// Copyright (c) 2025 Ben Schoepke  
+// All rights reserved.
+
 /**
  * yousampler
  * Core Application Logic
