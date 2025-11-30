@@ -794,7 +794,7 @@ function confirmLoad() {
 
 async function loadSuggestedVideos() {
     try {
-        const cacheBuster = 'v1';
+        const cacheBuster = 'v2';
         const response = await fetch(`suggested-videos.json?cb=${cacheBuster}`, { cache: 'no-store' });
         suggestedVideos = await response.json();
     } catch (error) {
