@@ -1222,7 +1222,7 @@ function setupShareEvents() {
             setTimeout(() => {
                 btnShare.innerHTML = originalContent;
                 btnShare.style.color = ''; // Reset color
-            }, 2000);
+            }, 5000);
         }).catch(err => {
             console.error('Failed to copy URL', err);
             alert('Failed to copy URL to clipboard');
