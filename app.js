@@ -1009,10 +1009,11 @@ function onMidiMessage(event) {
     }
 }
 
+const midiStartNote = 36;
+
 function handleMidiNoteOn(note, velocity) {
-    // Map notes 53-68 to pads 0-15
-    const startNote = 53;
-    const padIndex = note - startNote;
+    // Map notes 36-51 to pads 0-15
+    const padIndex = note - midiStartNote;
 
     if (padIndex >= 0 && padIndex < PAD_COUNT) {
         // Simulate pad trigger
@@ -1022,8 +1023,7 @@ function handleMidiNoteOn(note, velocity) {
 }
 
 function handleMidiNoteOff(note) {
-    const startNote = 53;
-    const padIndex = note - startNote;
+    const padIndex = note - midiStartNote;
 
     if (padIndex >= 0 && padIndex < PAD_COUNT) {
         handlePadRelease(padIndex, { type: 'midi' });
