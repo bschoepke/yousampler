@@ -546,6 +546,11 @@ function startPadPlayback(index) {
     pad.player.seekTo(pad.startTime, true);
     pad.player.playVideo();
 
+    // Immediately mark the pad as playing so it stays visible in full-screen mode
+    // (YouTube can auto-pause if the iframe is hidden while we wait for the PLAYING event)
+    const padEl = document.getElementById(`pad-${index}`);
+    if (padEl) padEl.classList.add('playing');
+
     pad.isPlaying = true;
 
     // Add to top of stack (remove if exists first to move to top)
