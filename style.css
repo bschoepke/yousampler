@@ -259,6 +259,7 @@ body {
     padding: 15px;
     overflow: hidden;
     min-height: 0;
+    container-type: size;
 }
 
 .pad-grid {
@@ -784,6 +785,12 @@ body {
 
     .grid-section {
         padding: 8px;
+    }
+}
+
+@container (max-aspect-ratio: 1/1) {
+    .pad {
+        aspect-ratio: 1 / 1;
     }
 }
 
