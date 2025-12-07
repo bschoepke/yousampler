@@ -327,19 +327,41 @@ function onPlayerStateChange(index, event) {
 }
 
 function updateZIndices() {
-    // Reset all z-indices first
+    const isFullScreen = document.body.classList.contains('full-screen-mode');
+
+    // Reset styles for all pads first
     pads.forEach((_, i) => {
         const el = document.getElementById(`pad-${i}`);
-        if (el) el.style.zIndex = '';
+        if (el) {
+            el.style.zIndex = '';
+            el.style.opacity = '';
+            el.style.pointerEvents = '';
+        }
     });
 
     // Apply z-indices based on stack position
-    // Base z-index for active/selected pad is 2000 (in CSS)
-    // Stacked playing pads start at 3000
     activePadStack.forEach((padIndex, stackIndex) => {
         const el = document.getElementById(`pad-${padIndex}`);
         if (el) {
+            // Apply Z-Index Stacking (Critical for visibility order)
             el.style.zIndex = 3000 + stackIndex;
+
+            if (isFullScreen) {
+                const isTop = stackIndex === activePadStack.length - 1;
+
+                // Hack: Top pad is 0.999 to force composition with layers below.
+                // Background pads are 1 (fully rendering) but z-indexed behind.
+                // This forces the browser to render background videos, preventing auto-pause.
+                el.style.opacity = isTop ? '0.999' : '1';
+
+                // Only top pad should receive pointer events
+                el.style.pointerEvents = isTop ? 'auto' : 'none';
+            } else {
+                // Grid mode: Opacity is handled by CSS (always 1 for playing)
+                // We don't need to force it, but let's clear it just in case
+                el.style.opacity = '';
+                el.style.pointerEvents = '';
+            }
         }
     });
 }
@@ -367,6 +389,7 @@ function handlePadTrigger(index, e) {
         if (!pad.retrigger) {
             pad.player.pauseVideo();
             pad.isPlaying = false;
+            document.getElementById(`pad-${index}`).classList.remove('playing'); // Sync update
 
             // Remove from stack
             activePadStack = activePadStack.filter(i => i !== index);
@@ -376,8 +399,6 @@ function handlePadTrigger(index, e) {
             return;
         }
     }
-
-
 
     selectPad(index); // Select the triggered pad
     startPadPlayback(index);
@@ -393,6 +414,7 @@ function handlePadRelease(index, e) {
     if (pad.mode === 'gate') {
         pad.player.pauseVideo();
         pad.isPlaying = false;
+        document.getElementById(`pad-${index}`).classList.remove('playing'); // Sync update
 
         // Remove from stack
         activePadStack = activePadStack.filter(i => i !== index);
@@ -1155,10 +1177,12 @@ function enterFullScreen() {
         }
     }
     document.body.classList.add('full-screen-mode');
+    updateZIndices();
 }
 
 function exitFullScreen() {
     document.body.classList.remove('full-screen-mode');
+    updateZIndices();
 }
 
 // ==========================================
