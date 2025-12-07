@@ -492,7 +492,8 @@ function renderModeIcon(mode) {
     });
 }
 
-function updateTimelineUI(index) {
+function updateTimelineUI(index, isDraggingArg = false) {
+    const isDragging = isDraggingArg || timelineContainer.classList.contains('is-dragging');
     const pad = pads[index];
     if (!pad.duration) {
         // Reset UI elements if no video is loaded or duration is zero
@@ -521,6 +522,10 @@ function updateTimelineUI(index) {
     const formatTime = (t) => {
         const m = Math.floor(t / 60).toString().padStart(2, '0');
         const s = Math.floor(t % 60).toString().padStart(2, '0');
+        if (isDragging) {
+            const ms = Math.floor((t % 1) * 1000).toString().padStart(3, '0');
+            return `${m}:${s}.${ms}`;
+        }
         return `${m}:${s}`;
     };
     startTimeDisplay.textContent = formatTime(pad.startTime);
@@ -734,58 +739,159 @@ function setupKnobs() {
 
 // Timeline Trimming Events
 function setupTimelineEvents() {
-    let isDraggingStart = false;
-    let isDraggingEnd = false;
+    let mode = null; // 'start', 'end', 'range'
+    let startX = 0;
+    let startY = 0;
+    let lastX = 0;
 
-    // Helper to handle drag logic for both mouse and touch
-    const handleDrag = (clientX) => {
-        const rect = timelineContainer.getBoundingClientRect();
+    const getSensitivity = (currentY) => {
+        const verticalDist = Math.abs(currentY - startY);
+        // If within 50px vertically, 1:1 sensitivity.
+        // Beyond that, sensitivity decreases.
+        // Formula: 1 / (1 + (dist - threshold) * factor)
+        // Example: dist=150 (100 over threshold) -> 1 / (1 + 100/50) = 1/3 speed.
+        if (verticalDist < 50) return 1;
+        return 1 / (1 + (verticalDist - 50) / 50);
+    };
+
+    const handleStart = (e, m) => {
+        if (activePadIndex === null) return;
         const pad = pads[activePadIndex];
         if (!pad || !pad.duration) return;
 
-        let offsetX = clientX - rect.left;
-        offsetX = Math.max(0, Math.min(offsetX, rect.width)); // Clamp within container bounds
+        mode = m;
+        // Support both mouse and touch
+        const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
 
-        const percentage = offsetX / rect.width;
-        const time = percentage * pad.duration;
+        startX = clientX;
+        startY = clientY;
+        lastX = clientX;
 
-        if (isDraggingStart) {
-            // Ensure start time doesn't go past end time
-            if (time < pad.endTime) pad.startTime = time;
-        } else if (isDraggingEnd) {
-            // Ensure end time doesn't go before start time
-            if (time > pad.startTime) pad.endTime = time;
-        }
-        updateTimelineUI(activePadIndex); // Update UI after drag
+        timelineContainer.classList.add('is-dragging');
+
+        // Add visual cues
+        if (mode === 'start') trimStart.classList.add('dragging');
+        if (mode === 'end') trimEnd.classList.add('dragging');
+        if (mode === 'range') timelineContainer.style.cursor = 'grabbing';
+
+        // Stop propagation if it's a handle, but for range we might need to be careful
+        e.stopPropagation();
+        e.preventDefault();
     };
 
-    // Mouse events for trim handles
-    trimStart.addEventListener('mousedown', (e) => { isDraggingStart = true; e.stopPropagation(); });
-    trimEnd.addEventListener('mousedown', (e) => { isDraggingEnd = true; e.stopPropagation(); });
+    const handleMove = (e) => {
+        if (!mode) return;
+        const pad = pads[activePadIndex];
+        if (!pad) return;
 
-    document.addEventListener('mousemove', (e) => {
-        if ((isDraggingStart || isDraggingEnd) && activePadIndex !== null) handleDrag(e.clientX);
+        const clientX = e.clientX || (e.touches ? e.touches[0].clientX : 0);
+        const clientY = e.clientY || (e.touches ? e.touches[0].clientY : 0);
+
+        const rect = timelineContainer.getBoundingClientRect();
+        const duration = pad.duration;
+        const width = rect.width;
+        if (width === 0) return;
+
+        const sensitivity = getSensitivity(clientY);
+        const deltaX = clientX - lastX;
+        lastX = clientX; // Update for next frame
+
+        // Calculate time delta logic
+        // default: deltaX pixels maps to (deltaX / width) * duration
+        const timeDelta = (deltaX / width) * duration * sensitivity;
+
+        if (mode === 'start') {
+            let newStart = pad.startTime + timeDelta;
+            newStart = Math.max(0, Math.min(newStart, pad.endTime - LOOP_EPSILON));
+            pad.startTime = newStart;
+        } else if (mode === 'end') {
+            let newEnd = pad.endTime + timeDelta;
+            newEnd = Math.max(pad.startTime + LOOP_EPSILON, Math.min(newEnd, pad.duration));
+            pad.endTime = newEnd;
+        } else if (mode === 'range') {
+            let newStart = pad.startTime + timeDelta;
+            let newEnd = pad.endTime + timeDelta;
+
+            // Clamp whole range
+            if (newStart < 0) {
+                const shift = 0 - newStart;
+                newStart += shift;
+                newEnd += shift;
+            }
+            if (newEnd > pad.duration) {
+                const shift = newEnd - pad.duration;
+                newStart -= shift;
+                newEnd -= shift;
+            }
+            // Double check end constraint just in case duration is small/edge case
+            if (newEnd > pad.duration) newEnd = pad.duration;
+
+            pad.startTime = newStart;
+            pad.endTime = newEnd;
+        }
+
+        updateTimelineUI(activePadIndex, true);
+    };
+
+    const handleEnd = () => {
+        if (mode) {
+            updateUrlState(); // Persist changes
+            trimStart.classList.remove('dragging');
+            trimEnd.classList.remove('dragging');
+            timelineContainer.classList.remove('is-dragging');
+            timelineContainer.style.cursor = '';
+        }
+        mode = null;
+    };
+
+    // --- Event Listeners ---
+
+    // Handles
+    trimStart.addEventListener('mousedown', (e) => handleStart(e, 'start'));
+    trimEnd.addEventListener('mousedown', (e) => handleStart(e, 'end'));
+    trimStart.addEventListener('touchstart', (e) => handleStart(e, 'start'));
+    trimEnd.addEventListener('touchstart', (e) => handleStart(e, 'end'));
+
+    // Range (Timeline Container)
+    // We need to differentiate clicking on handles vs empty space vs range
+    // Handles stop prop, so we only need to check if we are IN the range
+    timelineContainer.addEventListener('mousedown', (e) => {
+        if (activePadIndex === null) return;
+        const pad = pads[activePadIndex];
+        if (!pad || !pad.duration) return;
+
+        const rect = timelineContainer.getBoundingClientRect();
+        const offsetX = e.clientX - rect.left;
+        const clickTime = (offsetX / rect.width) * pad.duration;
+
+        if (clickTime > pad.startTime && clickTime < pad.endTime) {
+            handleStart(e, 'range');
+        }
     });
 
-    document.addEventListener('mouseup', () => {
-        if (isDraggingStart || isDraggingEnd) updateUrlState(); // Update URL on drag end
-        isDraggingStart = false;
-        isDraggingEnd = false;
+    // Touch for Range (using touchstart on container)
+    timelineContainer.addEventListener('touchstart', (e) => {
+        if (activePadIndex === null) return;
+        const pad = pads[activePadIndex];
+        if (!pad || !pad.duration) return;
+
+        const rect = timelineContainer.getBoundingClientRect();
+        const clientX = e.touches[0].clientX;
+        const offsetX = clientX - rect.left;
+        const clickTime = (offsetX / rect.width) * pad.duration;
+
+        if (clickTime > pad.startTime && clickTime < pad.endTime) {
+            handleStart(e, 'range');
+        }
     });
 
-    // Touch events for trim handles
-    trimStart.addEventListener('touchstart', (e) => { isDraggingStart = true; e.stopPropagation(); });
-    trimEnd.addEventListener('touchstart', (e) => { isDraggingEnd = true; e.stopPropagation(); });
 
-    document.addEventListener('touchmove', (e) => {
-        if ((isDraggingStart || isDraggingEnd) && activePadIndex !== null) handleDrag(e.touches[0].clientX);
-    });
-
-    document.addEventListener('touchend', () => {
-        if (isDraggingStart || isDraggingEnd) updateUrlState(); // Update URL on drag end
-        isDraggingStart = false;
-        isDraggingEnd = false;
-    });
+    // Global Movement
+    document.addEventListener('mousemove', handleMove);
+    document.addEventListener('mouseup', handleEnd);
+    document.addEventListener('touchmove', handleMove);
+    document.addEventListener('touchend', handleEnd);
 }
 
 // Modal (Load Video) Events

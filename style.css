@@ -229,6 +229,17 @@ body {
     flex-shrink: 0;
 }
 
+.trim-handle.dragging {
+    z-index: 1000;
+}
+
+.trim-handle.dragging .trim-time {
+    background-color: #000;
+    color: #fff;
+    padding: 2px 4px;
+    border-radius: 2px;
+}
+
 .trim-overlay {
     position: absolute;
     top: 0;
