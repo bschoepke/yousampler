@@ -329,22 +329,25 @@ body {
 
 /* Footer Row 1: Controls, Title, Trash */
 .footer-row-1 {
-    display: grid;
-    grid-template-columns: auto 1fr auto;
+    display: flex;
+    flex-direction: column;
     align-items: center;
-    gap: 20px;
-    padding: 8px 20px;
-    /* Height removed to allow content to dictate size */
+    gap: 16px;
+    padding: 16px 20px;
 }
 
 .footer-controls {
     display: flex;
-    gap: 12px;
+    gap: 24px;
     align-items: center;
+    justify-content: center;
 }
 
 .footer-title {
-    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 12px;
     max-width: 80ch;
     overflow: hidden;
     white-space: nowrap;
@@ -352,12 +355,10 @@ body {
     text-align: center;
     color: var(--text-primary);
     font-size: 1rem;
-    grid-row: 1;
-    grid-column: 1 / span 3;
 }
 
 .footer-trash {
-    justify-self: end;
+    flex-shrink: 0;
 }
 
 /* Footer Row 2: Timeline */
@@ -653,7 +654,6 @@ body {
 
     .footer-row-1 {
         padding: 6px 12px;
-        /* Height removed */
     }
 
     .footer-title {
@@ -678,8 +678,7 @@ body {
 
     .footer-row-1 {
         padding: 6px 10px;
-        gap: 12px;
-        /* Height removed */
+        gap: 8px;
     }
 
     .footer-row-2 {
@@ -713,7 +712,7 @@ body {
     }
 
     .footer-row-1 {
-        /* Height removed */
+        gap: 6px;
     }
 
     .footer-row-2 {
