@@ -67,11 +67,35 @@
                 <div class="footer-controls">
                     <!-- Volume -->
                     <div class="header-knob" id="knob-volume" title="Volume">
-                        <div class="knob-indicator" id="val-bar-vol"></div>
+                        <svg class="dial-svg" viewBox="0 0 40 40">
+                            <!-- Background Arc -->
+                            <path class="dial-bg" d="M 2 28 A 18 18 0 0 1 38 28" fill="none" stroke="#444"
+                                stroke-width="3" stroke-linecap="round" />
+                            <!-- Value Arc -->
+                            <path class="dial-val" id="vol-path" d="M 2 28 A 18 18 0 0 1 38 28" fill="none"
+                                stroke="var(--accent-orange)" stroke-width="3" stroke-linecap="round"
+                                stroke-dasharray="56.5" stroke-dashoffset="0" />
+                            <!-- Icon -->
+                            <g transform="translate(13, 16) scale(0.6)" fill="#aaa">
+                                <path
+                                    d="M3 9v6h4l5 5V4L7 9H3zm13.5 3c0-1.77-1.02-3.29-2.5-4.03v8.05c1.48-.73 2.5-2.25 2.5-4.02zM14 3.23v2.06c2.89.86 5 3.54 5 6.71s-2.11 5.85-5 6.71v2.06c4.01-.91 7-4.49 7-8.77s-2.99-7.86-7-8.77z" />
+                            </g>
+                        </svg>
                     </div>
                     <!-- Pitch -->
-                    <div class="header-knob" id="knob-pitch" title="Pitch">
-                        <div class="knob-indicator" id="val-bar-pitch"></div>
+                    <div class="header-knob" id="knob-pitch" title="Playback Speed">
+                        <svg class="dial-svg" viewBox="0 0 40 40">
+                            <!-- Background Arc -->
+                            <path class="dial-bg" d="M 2 28 A 18 18 0 0 1 38 28" fill="none" stroke="#444"
+                                stroke-width="3" stroke-linecap="round" />
+                            <!-- Value Arc -->
+                            <path class="dial-val" id="pitch-path" d="M 2 28 A 18 18 0 0 1 38 28" fill="none"
+                                stroke="var(--accent-blue)" stroke-width="3" stroke-linecap="round"
+                                stroke-dasharray="56.5" stroke-dashoffset="0" />
+                            <!-- Text -->
+                            <text id="pitch-text" x="20" y="26" text-anchor="middle" font-size="9" fill="#aaa"
+                                font-weight="bold" font-family="'Roboto Mono', monospace">1x</text>
+                        </svg>
                     </div>
                     <!-- Mode -->
                     <div class="header-knob" id="mode-control-lcd" title="Playback Mode">

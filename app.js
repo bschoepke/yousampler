@@ -55,8 +55,9 @@ const btnExitFullscreen = document.getElementById('btn-exit-fullscreen');
 // Knob Elements
 const knobVolume = document.getElementById('knob-volume');
 const knobPitch = document.getElementById('knob-pitch');
-const valBarVol = document.getElementById('val-bar-vol');
-const valBarPitch = document.getElementById('val-bar-pitch');
+const valBarVol = document.getElementById('vol-path');
+const valBarPitch = document.getElementById('pitch-path');
+const pitchText = document.getElementById('pitch-text');
 
 // Mode Control
 const modeControlLcd = document.getElementById('mode-control-lcd');
@@ -442,6 +443,7 @@ function deletePad(index) {
         updateTimelineUI(index); // Will clear timeline UI since duration is 0
         updateKnobVisual(valBarVol, 100, 0, 100); // Reset knob visuals
         updateKnobVisual(valBarPitch, 1, 0.25, 2);
+        if (pitchText) pitchText.textContent = '1x';
         modeIcon.innerHTML = ''; // Clear mode icon
 
         // Reset active pad index and update visibility
@@ -474,6 +476,7 @@ function selectPad(index) {
     updateTimelineUI(index);
     updateKnobVisual(valBarVol, pad.volume, 0, 100);
     updateKnobVisual(valBarPitch, pad.playbackRate, 0.25, 2);
+    if (pitchText) pitchText.textContent = pad.playbackRate + 'x';
 
     updateFooterVisibility();
 }
@@ -528,10 +531,14 @@ function updateTimelineUI(index) {
     endTimeDisplay.textContent = formatTime(pad.endTime);
 }
 
-function updateKnobVisual(valBarElement, value, min, max) {
-    // Map value to a percentage for conic gradient fill
-    const percent = ((value - min) / (max - min)) * 100;
-    valBarElement.style.background = `conic-gradient(var(--knob-color) ${percent}%, transparent ${percent}%)`;
+function updateKnobVisual(pathElement, value, min, max) {
+    if (!pathElement) return;
+    // Semi-circle arc length is approx 50 (Pi * 18px radius)
+    const maxLength = 56.5;
+    const percent = Math.max(0, Math.min(1, (value - min) / (max - min)));
+    // Offset calculation: 0 is full, maxLength is empty
+    const offset = maxLength * (1 - percent);
+    pathElement.style.strokeDashoffset = offset;
 }
 
 function updateTransportIcon() {
@@ -710,6 +717,7 @@ function setupKnobs() {
         });
         pad.playbackRate = nearest;
         updateKnobVisual(valBarPitch, pad.playbackRate, 0.25, 2);
+        if (pitchText) pitchText.textContent = pad.playbackRate + 'x';
         if (pad.player && pad.player.setPlaybackRate) pad.player.setPlaybackRate(pad.playbackRate);
     }, () => {
         // Reset Pitch
@@ -717,6 +725,7 @@ function setupKnobs() {
         const pad = pads[activePadIndex];
         pad.playbackRate = 1;
         updateKnobVisual(valBarPitch, pad.playbackRate, 0.25, 2);
+        if (pitchText) pitchText.textContent = '1x';
         if (pad.player && pad.player.setPlaybackRate) pad.player.setPlaybackRate(1);
     });
 }
