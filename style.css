@@ -600,7 +600,7 @@ body {
     content: '';
     position: absolute;
     top: 50%;
-    width: 40%;
+    width: 33%;
     height: 1px;
     background-color: #333;
 }
