@@ -986,3 +986,31 @@ body.full-screen-mode .pad.active iframe {
     transition: opacity 0.2s;
     pointer-events: none;
 }
+
+/* ==========================================
+   MOBILE OVERRIDES
+   ========================================== */
+.mobile-desktop-msg {
+    display: none;
+    color: #666;
+    font-size: 12px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    padding: 8px 12px;
+    border: 1px dashed #444;
+    border-radius: 4px;
+}
+
+body.is-mobile #btn-midi-toggle,
+body.is-mobile #btn-fullscreen {
+    display: none !important;
+}
+
+body.is-mobile .footer-controls {
+    display: none !important;
+}
+
+body.is-mobile .mobile-desktop-msg {
+    display: block;
+}

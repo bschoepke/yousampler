@@ -112,11 +112,18 @@ function init() {
     startApiReadyPolling();
     loadSuggestedVideos();
     setupMidiControl();
+    detectMobile();
 
     updateFooterVisibility(); // Initial visibility check
 
     // Check for shared state in URL - MOVED to onYouTubeIframeAPIReady
     // initFromUrl();
+}
+
+function detectMobile() {
+    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+        document.body.classList.add('is-mobile');
+    }
 }
 
 const keyMap = {
