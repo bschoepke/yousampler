@@ -444,7 +444,7 @@ function deletePad(index) {
         updateKnobVisual(valBarVol, 100, 0, 100); // Reset knob visuals
         updateKnobVisual(valBarPitch, 1, 0.25, 2);
         if (pitchText) pitchText.textContent = '1x';
-        modeIcon.innerHTML = ''; // Clear mode icon
+        document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
 
         // Reset active pad index and update visibility
         activePadIndex = null;
@@ -482,18 +482,14 @@ function selectPad(index) {
 }
 
 function renderModeIcon(mode) {
-    let svg = '';
-    if (mode === 'gate') {
-        // Gate Icon (Square bracket like)
-        svg = `<svg viewBox="0 0 24 24"><path d="M4 20v-16h16v16h-4v-12h-8v12z" /></svg>`;
-    } else if (mode === 'oneshot') {
-        // One Shot Icon (Arrow right)
-        svg = `<svg viewBox="0 0 24 24"><path d="M8 5v14l11-7z" /></svg>`;
-    } else if (mode === 'loop') {
-        // Loop Icon (Circular arrow)
-        svg = `<svg viewBox="0 0 24 24"><path d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97-.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" /></svg>`;
-    }
-    modeIcon.innerHTML = svg;
+    // Update active state on options
+    document.querySelectorAll('.mode-option').forEach(el => {
+        if (el.dataset.mode === mode) {
+            el.classList.add('active');
+        } else {
+            el.classList.remove('active');
+        }
+    });
 }
 
 function updateTimelineUI(index) {
@@ -596,14 +592,20 @@ function updateFooterVisibility() {
 
 // Mode Control
 function setupModeControl() {
-    modeControlLcd.addEventListener('click', () => {
+    modeControlLcd.addEventListener('click', (e) => {
         if (activePadIndex === null) return;
         const pad = pads[activePadIndex];
 
-        // Cycle: Gate -> OneShot -> Loop -> Gate
-        if (pad.mode === 'gate') pad.mode = 'oneshot';
-        else if (pad.mode === 'oneshot') pad.mode = 'loop';
-        else pad.mode = 'gate';
+        // Check if a specific mode option was clicked
+        const option = e.target.closest('.mode-option');
+        if (option) {
+            pad.mode = option.dataset.mode;
+        } else {
+            // Cycle if click was on the container but not a specific option
+            if (pad.mode === 'gate') pad.mode = 'oneshot';
+            else if (pad.mode === 'oneshot') pad.mode = 'loop';
+            else pad.mode = 'gate';
+        }
 
         renderModeIcon(pad.mode);
         updateUrlState(); // Update URL on mode change

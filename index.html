@@ -99,7 +99,29 @@
                     </div>
                     <!-- Mode -->
                     <div class="header-knob" id="mode-control-lcd" title="Playback Mode">
-                        <div class="mode-icon" id="mode-icon"></div>
+                        <div class="mode-options">
+                            <div class="mode-option" data-mode="gate">
+                                <svg class="mode-opt-icon" viewBox="0 0 24 24">
+                                    <path d="M4 20v-16h16v16h-2v-14h-12v14z" />
+                                </svg>
+                                <span class="mode-opt-label">Gate</span>
+                            </div>
+                            <span class="mode-separator">|</span>
+                            <div class="mode-option" data-mode="oneshot">
+                                <svg class="mode-opt-icon" viewBox="0 0 24 24">
+                                    <path d="M8 5v14l11-7z" />
+                                </svg>
+                                <span class="mode-opt-label">One Shot</span>
+                            </div>
+                            <span class="mode-separator">|</span>
+                            <div class="mode-option" data-mode="loop">
+                                <svg class="mode-opt-icon" viewBox="0 0 24 24">
+                                    <path
+                                        d="M12 4V1L8 5l4 4V6c3.31 0 6 2.69 6 6 0 1.01-.25 1.97-.7 2.8l1.46 1.46C19.54 15.03 20 13.57 20 12c0-4.42-3.58-8-8-8zm0 14c-3.31 0-6-2.69-6-6 0-1.01.25-1.97-.7-2.8L5.24 7.74C4.46 8.97 4 10.43 4 12c0 4.42 3.58 8 8 8v3l4-4-4-4v3z" />
+                                </svg>
+                                <span class="mode-opt-label">Loop</span>
+                            </div>
+                        </div>
                     </div>
                 </div>
                 <div class="footer-title">
