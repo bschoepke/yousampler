@@ -29,6 +29,7 @@ class PadState {
         this.title = '';
         this.volume = 100;
         this.playbackRate = 1;
+        this.retrigger = true;
     }
 }
 
@@ -62,6 +63,7 @@ const pitchText = document.getElementById('pitch-text');
 // Mode Control
 const modeControlLcd = document.getElementById('mode-control-lcd');
 const modeIcon = document.getElementById('mode-icon');
+const controlRetrigger = document.getElementById('control-retrigger');
 
 // Modal Elements
 const loaderModal = document.getElementById('loader-modal');
@@ -96,6 +98,7 @@ function init() {
     renderPads();
     setupKnobs();
     setupModeControl();
+    setupRetriggerControl();
     setupTimelineEvents();
     setupKeyboardEvents();
     setupModalEvents();
@@ -236,6 +239,7 @@ function loadVideoToPad(index, videoId, isCopy = false, savedState = null) {
         pad.startTime = 0;
         pad.endTime = 0; // Will be set on ready
         pad.mode = 'gate';
+        pad.retrigger = true;
     } else if (savedState) {
         // Restore saved state
         pad.volume = savedState.volume;
@@ -243,6 +247,7 @@ function loadVideoToPad(index, videoId, isCopy = false, savedState = null) {
         pad.startTime = savedState.startTime;
         pad.endTime = savedState.endTime;
         pad.mode = savedState.mode;
+        pad.retrigger = (savedState.retrigger !== undefined) ? savedState.retrigger : true;
     }
 
     const padEl = document.getElementById(`pad-${index}`);
@@ -355,22 +360,24 @@ function handlePadTrigger(index, e) {
 
     if (!pad.player) return; // Player might not be ready yet
 
-    // If already playing and not in gate mode, pause instead of re-triggering
-    if (pad.mode !== 'gate' && pad.isPlaying) {
-        pad.player.pauseVideo();
-        pad.isPlaying = false;
+    // Logic:
+    // If !retrigger: "Operates as play/pause" (Toggle behavior).
+    // If retrigger: Always restarts (Retrigger behavior).
+    if (pad.isPlaying) {
+        if (!pad.retrigger) {
+            pad.player.pauseVideo();
+            pad.isPlaying = false;
 
-        // Remove from stack
-        activePadStack = activePadStack.filter(i => i !== index);
-        updateZIndices();
+            // Remove from stack
+            activePadStack = activePadStack.filter(i => i !== index);
+            updateZIndices();
 
-        updateTransportIcon();
-        // Ensure the pad remains selected or selects this one? 
-        // The user request implies toggling play/pause. 
-        // We probably still want to select it if it wasn't selected, but usually it would be if it's playing.
-        // Let's just return to stop re-triggering.
-        return;
+            updateTransportIcon();
+            return;
+        }
     }
+
+
 
     selectPad(index); // Select the triggered pad
     startPadPlayback(index);
@@ -381,6 +388,8 @@ function handlePadRelease(index, e) {
     const pad = pads[index];
     if (!pad.player || !pad.videoId) return;
 
+    // Gate mode always stops on release (Gate behavior)
+    // Resume behavior is handled by startPadPlayback not seeking to start
     if (pad.mode === 'gate') {
         pad.player.pauseVideo();
         pad.isPlaying = false;
@@ -408,6 +417,7 @@ function copyPad(sourceIndex, targetIndex) {
     targetPad.mode = sourcePad.mode;
     targetPad.volume = sourcePad.volume;
     targetPad.playbackRate = sourcePad.playbackRate;
+    targetPad.retrigger = sourcePad.retrigger;
     targetPad.title = sourcePad.title; // Also copy title for immediate display
 
     // Reload target pad with isCopy=true to preserve copied settings
@@ -454,6 +464,7 @@ function deletePad(index) {
         updateKnobVisual(valBarVol, 100, 0, 100); // Reset knob visuals
         updateKnobVisual(valBarPitch, 1, 0.25, 2);
         if (pitchText) pitchText.textContent = '1x';
+        updateRetriggerToggle(true);
         document.querySelectorAll('.mode-option').forEach(el => el.classList.remove('active'));
 
         // Reset active pad index and update visibility
@@ -487,6 +498,7 @@ function selectPad(index) {
     updateKnobVisual(valBarVol, pad.volume, 0, 100);
     updateKnobVisual(valBarPitch, pad.playbackRate, 0.25, 2);
     if (pitchText) pitchText.textContent = pad.playbackRate + 'x';
+    updateRetriggerToggle(pad.retrigger);
 
     updateFooterVisibility();
 }
@@ -564,7 +576,35 @@ function startPadPlayback(index) {
 
     pad.player.setVolume(pad.volume);
     pad.player.setPlaybackRate(pad.playbackRate);
-    pad.player.seekTo(pad.startTime, true);
+
+    // Seek Logic:
+    // If Retrigger is ON: Always seek to Start Time.
+    // If Retrigger is OFF (Resume Mode):
+    //    - If at/past End Time: Seek to Start Time.
+    //    - If not yet started (currentTime < startTime): Seek to Start Time.
+    //    - Else: Do not seek (Resume).
+
+    let shouldSeek = true;
+    if (!pad.retrigger) {
+        // If player has officially ended, we must seek to start
+        if (pad.player.getPlayerState && pad.player.getPlayerState() === 0) { // 0 is ENDED
+            shouldSeek = true;
+        } else {
+            const currentTime = pad.player.getCurrentTime();
+            // Check if we are "in bounds" to resume
+            // We use a larger buffer (0.2s) here than the loop epsilon to avoid 
+            // resuming right at the end just to stop 1 frame later.
+            const resumeThreshold = 0.2;
+
+            if (currentTime >= pad.startTime && currentTime < pad.endTime - resumeThreshold) {
+                shouldSeek = false;
+            }
+        }
+    }
+
+    if (shouldSeek) {
+        pad.player.seekTo(pad.startTime, true);
+    }
     pad.player.playVideo();
 
     // Immediately mark the pad as playing so it stays visible in full-screen mode
@@ -625,6 +665,25 @@ function setupModeControl() {
         renderModeIcon(pad.mode);
         updateUrlState(); // Update URL on mode change
     });
+}
+
+// Retrigger Control
+function setupRetriggerControl() {
+    controlRetrigger.addEventListener('click', () => {
+        if (activePadIndex === null) return;
+        const pad = pads[activePadIndex];
+        pad.retrigger = !pad.retrigger;
+        updateRetriggerToggle(pad.retrigger);
+        updateUrlState();
+    });
+}
+
+function updateRetriggerToggle(active) {
+    if (active) {
+        controlRetrigger.classList.add('active');
+    } else {
+        controlRetrigger.classList.remove('active');
+    }
 }
 
 // Knobs
@@ -1280,7 +1339,12 @@ function startPlaybackLoop() {
                 }
 
                 // Check if current time is at/near the defined end time
-                if (currentTime >= pad.endTime - LOOP_EPSILON) {
+                // Fix: Only apply EPSILON check if we are NOT at the natural end of the video.
+                // If endTime is the full duration, let the player finish naturally (triggered by ON_STATE_CHANGE -> ENDED).
+                // This prevents cutting off the last fraction of a second and ensures playhead reaches the end.
+                const isFullDuration = Math.abs(pad.duration - pad.endTime) < 0.1;
+
+                if (!isFullDuration && currentTime >= pad.endTime - LOOP_EPSILON) {
                     if (pad.mode === 'loop') {
                         // Loop mode: jump back with seek for tighter loop
                         pad.player.seekTo(pad.startTime, true);
@@ -1312,7 +1376,8 @@ function serializeState() {
             e: parseFloat(p.endTime.toFixed(2)),
             m: p.mode,
             vol: p.volume,
-            r: p.playbackRate
+            r: p.playbackRate,
+            rt: p.retrigger ? 1 : 0
         };
     });
     return btoa(JSON.stringify(state));
@@ -1352,7 +1417,8 @@ function tryApplyUrlState() {
                 endTime: padState.e,
                 mode: padState.m,
                 volume: padState.vol,
-                playbackRate: padState.r
+                playbackRate: padState.r,
+                retrigger: (padState.rt !== undefined) ? !!padState.rt : true
             };
             loadVideoToPad(index, padState.v, false, fullState);
         }
