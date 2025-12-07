@@ -464,13 +464,19 @@ body {
     align-items: center;
     justify-content: center;
     gap: 12px;
+    width: 100%;
     max-width: 80ch;
-    overflow: hidden;
-    white-space: nowrap;
-    text-overflow: ellipsis;
     text-align: center;
     color: var(--text-primary);
     font-size: 1rem;
+    margin-bottom: 0.5rem;
+}
+
+#video-title {
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
 }
 
 .footer-trash {
