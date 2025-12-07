@@ -120,8 +120,18 @@ function init() {
     // initFromUrl();
 }
 
+
 function detectMobile() {
-    if (/Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(navigator.userAgent)) {
+    const userAgent = navigator.userAgent || navigator.vendor || window.opera;
+
+    // 1. Standard User Agent Check
+    const isMobileUA = /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(userAgent);
+
+    // 2. CSS Interaction Media Query (Primary pointer is coarse/touch)
+    // This is the most reliable modern check for smartphones/tablets
+    const isCoarsePointer = window.matchMedia && window.matchMedia('(pointer: coarse)').matches;
+
+    if (isMobileUA || isCoarsePointer) {
         document.body.classList.add('is-mobile');
     }
 }

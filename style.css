@@ -1014,3 +1014,9 @@ body.is-mobile .footer-controls {
 body.is-mobile .mobile-desktop-msg {
     display: block;
 }
+
+@media (hover: hover) and (pointer: fine) {
+    .mobile-desktop-msg {
+        display: none !important;
+    }
+}
