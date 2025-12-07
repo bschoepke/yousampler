@@ -141,7 +141,17 @@ function renderPads() {
         // Key Overlay
         const keyOverlay = document.createElement('div');
         keyOverlay.classList.add('pad-key-overlay');
-        keyOverlay.textContent = indexToKey[index] || '';
+
+        // Keycap SVG structure
+        keyOverlay.innerHTML = `
+            <svg class="keycap-icon" viewBox="0 0 24 24">
+                <!-- Base/Side (skirt) -->
+                <rect x="2" y="4" width="20" height="18" rx="3" class="keycap-side" />
+                <!-- Top Face (smaller, centered) -->
+                <rect x="4.5" y="2" width="15" height="15" rx="2" class="keycap-top" />
+            </svg>
+            <span class="key-label">${indexToKey[index] || ''}</span>
+        `;
         padEl.appendChild(keyOverlay);
 
         // Mouse Events

@@ -317,15 +317,49 @@ body {
 /* Pad key overlay */
 .pad-key-overlay {
     position: absolute;
-    bottom: 6px;
+    bottom: 8px;
     right: 8px;
-    font-family: 'Roboto Mono', monospace;
-    font-size: 11px;
-    font-weight: 600;
-    color: rgba(255, 255, 255, 0.5);
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
     pointer-events: none;
-    mix-blend-mode: difference;
     z-index: 10;
+}
+
+.keycap-icon {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    filter: drop-shadow(0 2px 2px rgba(0, 0, 0, 0.5));
+}
+
+.keycap-side {
+    fill: #181818;
+    stroke: #000;
+    stroke-width: 0.5;
+}
+
+.keycap-top {
+    fill: #333;
+    stroke: rgba(255, 255, 255, 0.15);
+    stroke-width: 1;
+}
+
+.key-label {
+    position: relative;
+    z-index: 2;
+    font-family: 'Roboto Mono', monospace;
+    font-size: 14px;
+    font-weight: 700;
+    color: #e0e0e0;
+    line-height: 1;
+    margin-top: -6px;
+    /* Perspective drift adjustment */
+    text-shadow: 0 1px 2px rgba(0, 0, 0, 0.8);
 }
 
 /* ==========================================
