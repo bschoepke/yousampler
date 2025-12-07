@@ -448,10 +448,18 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    gap: 6px;
 }
 
 .btn-icon:hover {
     color: var(--accent-blue);
+}
+
+.btn-label {
+    font-size: 12px;
+    font-weight: 600;
+    font-family: 'Roboto Mono', monospace;
+    text-transform: uppercase;
 }
 
 .trash-zone {
