@@ -386,6 +386,16 @@ body {
     padding: 0;
 }
 
+.logo-link {
+    display: block;
+    cursor: pointer;
+    transition: opacity 0.2s ease;
+}
+
+.logo-link:hover {
+    opacity: 0.8;
+}
+
 .branding-logo {
     height: 72px;
     width: auto;
