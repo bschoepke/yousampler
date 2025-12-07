@@ -606,13 +606,15 @@ function setupModeControl() {
 // Knobs
 function setupKnobs() {
     // Generic knob setup function
-    function setupKnob(element, param, min, max, step, onChange, onReset) {
+    function setupKnob(element, param, min, max, step, onChange, onReset, onClick) {
         let isDragging = false;
+        let hasDragged = false; // Track if actual dragging (mouse movement) occurred
         let startY = 0;
         let startValue = 0;
 
         element.addEventListener('mousedown', (e) => {
             isDragging = true;
+            hasDragged = false; // Reset drag flag on new mousedown
             startY = e.clientY;
             if (activePadIndex === null) return;
             startValue = pads[activePadIndex][param]; // Get current value from active pad
@@ -625,6 +627,12 @@ function setupKnobs() {
             if (activePadIndex === null) return;
 
             const deltaY = startY - e.clientY; // Up is positive
+
+            // Only consider it a drag if moved more than 3 pixels
+            if (Math.abs(deltaY) > 3) {
+                hasDragged = true;
+            }
+
             const sensitivity = (max - min) / 200; // 200px drag for full range
             let newValue = startValue + (deltaY * sensitivity);
             newValue = Math.max(min, Math.min(max, newValue)); // Clamp value
@@ -634,9 +642,15 @@ function setupKnobs() {
 
         window.addEventListener('mouseup', () => {
             if (isDragging) {
+                // Call onClick handler if provided and no dragging occurred
+                if (onClick && !hasDragged) {
+                    onClick(hasDragged);
+                } else if (hasDragged) {
+                    updateUrlState(); // Update URL on drag end (only if dragged)
+                }
                 isDragging = false;
+                hasDragged = false;
                 document.body.style.cursor = 'default'; // Reset cursor
-                updateUrlState(); // Update URL on drag end
             }
         });
 
@@ -648,7 +662,9 @@ function setupKnobs() {
         });
     }
 
+
     // Volume Knob specific setup
+    let volumeBeforeMute = 100; // Store volume before muting for unmute restore
     setupKnob(knobVolume, 'volume', 0, 100, null, (val) => {
         if (activePadIndex === null) return;
         const pad = pads[activePadIndex];
@@ -662,6 +678,25 @@ function setupKnobs() {
         pad.volume = 100;
         updateKnobVisual(valBarVol, pad.volume, 0, 100);
         if (pad.player && pad.player.setVolume) pad.player.setVolume(100);
+    }, (hasDragged) => {
+        // Click handler (only called if no drag occurred)
+        if (hasDragged) return;
+        if (activePadIndex === null) return;
+        const pad = pads[activePadIndex];
+
+        // Toggle mute/unmute
+        if (pad.volume > 0) {
+            // Mute: store current volume and set to 0
+            volumeBeforeMute = pad.volume;
+            pad.volume = 0;
+        } else {
+            // Unmute: restore previous volume (default to 100 if was 0)
+            pad.volume = volumeBeforeMute > 0 ? volumeBeforeMute : 100;
+        }
+
+        updateKnobVisual(valBarVol, pad.volume, 0, 100);
+        if (pad.player && pad.player.setVolume) pad.player.setVolume(pad.volume);
+        updateUrlState();
     });
 
     // Pitch Knob specific setup
