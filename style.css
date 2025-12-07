@@ -267,8 +267,9 @@ body {
     grid-template-columns: repeat(4, 1fr);
     gap: 4px;
     width: 100%;
-    max-width: 100%;
+    max-width: calc(100cqh * 16 / 9);
     max-height: 100%;
+    aspect-ratio: 16 / 9;
 }
 
 .pad {
@@ -790,6 +791,10 @@ body {
 
 @container (max-aspect-ratio: 1/1) {
     .pad {
+        aspect-ratio: 1 / 1;
+    }
+
+    .pad-grid {
         aspect-ratio: 1 / 1;
     }
 }
